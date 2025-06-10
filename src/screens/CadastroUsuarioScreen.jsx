@@ -8,7 +8,7 @@ import UserForm from "../components/forms/UserForm";
 import { HeaderReq, UserPOST } from "../api/PathsApi";
 
 
-const RegisterUser = () => {
+const CadastroUsuarioScreen = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [token, setToken] = useState(null);
   const navigation = useNavigation();
@@ -63,4 +63,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RegisterUser;
+export default CadastroUsuarioScreen;

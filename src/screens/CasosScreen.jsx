@@ -36,7 +36,7 @@ const CasosScreen = () => {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
   const handleGoToCase = (id) => {
-    navigation.navigate("DetalhesCasoScreen", { id });
+    navigation.navigate("DetalhesCaso", {casoId: id} );
   };
 
   useEffect(() => {
