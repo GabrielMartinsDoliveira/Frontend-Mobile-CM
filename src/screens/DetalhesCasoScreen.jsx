@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";;
 import axios from 'axios';
 import {
   Appbar,
@@ -23,7 +23,7 @@ import {
   EvidencesGET,
   HeaderReq,
   UserByIdGET,
-} from '../../api/PathsApi';
+} from '../api/PathsApi';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const DetalhesCasoScreen = () => {

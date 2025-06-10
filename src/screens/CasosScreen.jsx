@@ -1,8 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import {
   Appbar,
   TextInput,
@@ -15,85 +21,81 @@ import {
   IconButton,
   Portal,
   Modal,
-} from 'react-native-paper';
-import { CasesGET, HeaderReq } from '../../api/PathsApi';
+} from "react-native-paper";
+import { CasesGET, HeaderReq } from "../api/PathsApi";
 
 const CasosScreen = () => {
   const navigation = useNavigation();
   const [cases, setCases] = useState([]);
-  const [responsibleFilter, setResponsibleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
+  const [responsibleFilter, setResponsibleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState("");
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
   const handleGoToCase = (id) => {
-    navigation.navigate('DetalhesCasoScreen', { id });
+    navigation.navigate("DetalhesCasoScreen", { id });
   };
 
   useEffect(() => {
-    const getToken = async () => {
-      const storedToken = await AsyncStorage.getItem('token');
-      setToken(storedToken);
-    };
-    getToken();
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
-
-    const getCases = async () => {
+    const loadTokenAndCases = async () => {
       try {
+        const storedToken = await AsyncStorage.getItem("token");
+        setToken(storedToken);
+
+        if (!storedToken) return;
+
         const response = await axios(CasesGET, {
-          headers: HeaderReq(token),
+          headers: HeaderReq(storedToken),
         });
         setCases(response.data);
       } catch (error) {
-        console.error('Erro ao buscar casos:', error.message);
+        console.error("Erro ao buscar casos:", error.message);
       } finally {
         setIsLoading(false);
       }
     };
 
-    getCases();
-  }, [token]);
+    loadTokenAndCases();
+  }, []);
 
   const filteredCases = cases.filter((item) => {
     const matchesResponsible = item.responsavel.nome
       .toLowerCase()
       .includes(responsibleFilter.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || item.status === statusFilter;
 
     const matchesDate =
       !dateFilter ||
-      new Date(item.dataAbertura).toISOString().split('T')[0] === dateFilter;
+      new Date(item.dataAbertura).toISOString().split("T")[0] === dateFilter;
 
     return matchesResponsible && matchesStatus && matchesDate;
   });
 
   const clearDateFilter = () => {
-    setDateFilter('');
+    setDateFilter("");
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Em andamento':
-        return '#ffc107';
-      case 'Finalizado':
-        return '#28a745';
-      case 'Arquivado':
-        return '#6c757d';
+      case "Em andamento":
+        return "#ffc107";
+      case "Finalizado":
+        return "#28a745";
+      case "Arquivado":
+        return "#6c757d";
       default:
-        return '#f8f9fa';
+        return "#f8f9fa";
     }
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    return date.toLocaleDateString("pt-BR");
   };
 
   return (
@@ -120,15 +122,15 @@ const CasosScreen = () => {
                 mode="outlined"
                 onPress={() => setStatusMenuVisible(true)}
                 style={styles.filterInput}
-                contentStyle={{ justifyContent: 'space-between' }}
+                contentStyle={{ justifyContent: "space-between" }}
               >
-                {statusFilter === 'all' ? 'Todos status' : statusFilter}
+                {statusFilter === "all" ? "Todos status" : statusFilter}
               </Button>
             }
           >
             <Menu.Item
               onPress={() => {
-                setStatusFilter('all');
+                setStatusFilter("all");
                 setStatusMenuVisible(false);
               }}
               title="Todos status"
@@ -136,21 +138,21 @@ const CasosScreen = () => {
             <Divider />
             <Menu.Item
               onPress={() => {
-                setStatusFilter('Em andamento');
+                setStatusFilter("Em andamento");
                 setStatusMenuVisible(false);
               }}
               title="Em andamento"
             />
             <Menu.Item
               onPress={() => {
-                setStatusFilter('Finalizado');
+                setStatusFilter("Finalizado");
                 setStatusMenuVisible(false);
               }}
               title="Finalizado"
             />
             <Menu.Item
               onPress={() => {
-                setStatusFilter('Arquivado');
+                setStatusFilter("Arquivado");
                 setStatusMenuVisible(false);
               }}
               title="Arquivado"
@@ -166,10 +168,7 @@ const CasosScreen = () => {
               mode="outlined"
               right={
                 dateFilter ? (
-                  <TextInput.Icon
-                    icon="close"
-                    onPress={clearDateFilter}
-                  />
+                  <TextInput.Icon icon="close" onPress={clearDateFilter} />
                 ) : null
               }
             />
@@ -185,7 +184,7 @@ const CasosScreen = () => {
                 <Button
                   mode="contained"
                   onPress={() => {
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = new Date().toISOString().split("T")[0];
                     setDateFilter(today);
                     setDatePickerVisible(false);
                   }}
@@ -195,7 +194,7 @@ const CasosScreen = () => {
                 <Button
                   mode="outlined"
                   onPress={() => {
-                    setDateFilter('');
+                    setDateFilter("");
                     setDatePickerVisible(false);
                   }}
                   style={{ marginTop: 10 }}
@@ -234,7 +233,9 @@ const CasosScreen = () => {
                 <DataTable.Cell>
                   <Chip
                     style={{ backgroundColor: getStatusColor(caso.status) }}
-                    textStyle={{ color: caso.status === 'Em andamento' ? '#000' : '#fff' }}
+                    textStyle={{
+                      color: caso.status === "Em andamento" ? "#000" : "#fff",
+                    }}
                   >
                     {caso.status}
                   </Chip>
@@ -258,7 +259,7 @@ const CasosScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   content: {
     padding: 16,
@@ -268,31 +269,31 @@ const styles = StyleSheet.create({
   },
   filterInput: {
     marginBottom: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   dateFilterContainer: {
-    position: 'relative',
+    position: "relative",
   },
   table: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   loadingContainer: {
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 10,
   },
   noResultsContainer: {
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalContainer: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 20,
     margin: 20,
     borderRadius: 8,
