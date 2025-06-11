@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import {
   Appbar,
   Card,
@@ -16,61 +16,63 @@ import {
   Portal,
   TextInput,
   HelperText,
-} from 'react-native-paper';
+} from "react-native-paper";
 import {
   CasesDetailsGET,
   CaseUpdatePUT,
   EvidencesGET,
   HeaderReq,
   UserByIdGET,
-} from '../../api/PathsApi';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+} from "../api/PathsApi";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 const DetalhesCasoScreen = () => {
   const route = useRoute();
-  const { id } = route.params;
+  const { casoId } = route.params;
   const navigation = useNavigation();
   const [caseDetail, setCaseDetail] = useState(null);
   const [formData, setFormData] = useState({
-    titulo: '',
-    descricao: '',
-    status: '',
-    dataAbertura: '',
-    dataOcorrencia: '',
-    dataFechamento: '',
+    titulo: "",
+    descricao: "",
+    status: "",
+    dataAbertura: "",
+    dataOcorrencia: "",
+    dataFechamento: "",
     localidade: {
-      latitude: '',
-      longitude: '',
+      latitude: "",
+      longitude: "",
     },
   });
   const [evidences, setEvidences] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [token, setToken] = useState('');
-  const [userId, setUserId] = useState('');
-  const [userRole, setUserRole] = useState('');
+  const [token, setToken] = useState("");
+  const [userId, setUserId] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
+    console.log(casoId)
+
     const loadData = async () => {
-      const storedToken = await AsyncStorage.getItem('token');
-      const storedUserId = await AsyncStorage.getItem('userId');
+      const storedToken = await AsyncStorage.getItem("token");
+      const storedUserId = await AsyncStorage.getItem("userId");
       setToken(storedToken);
       setUserId(storedUserId);
-      
-      if (id) {
+
+      if (casoId) {
         loadCase(storedToken);
-        loadEvidences(id, storedToken);
+        loadEvidences(casoId, storedToken);
         getRoleUser(storedUserId, storedToken);
       }
     };
     loadData();
-  }, [id]);
+  }, [casoId]);
 
   const loadCase = async (token) => {
     try {
-      const response = await axios.get(`${CasesDetailsGET}/${id}`, {
+      const response = await axios.get(`${CasesDetailsGET}/${casoId}`, {
         headers: HeaderReq(token),
       });
       setCaseDetail(response.data);
@@ -78,34 +80,34 @@ const DetalhesCasoScreen = () => {
         titulo: response.data.titulo,
         status: response.data.status,
         descricao: response.data.descricao,
-        dataAbertura: response.data.dataAbertura?.split('T')[0],
-        dataOcorrencia: response.data.dataOcorrencia?.split('T')[0],
-        dataFechamento: response.data.dataFechamento?.split('T')[0] || '',
+        dataAbertura: response.data.dataAbertura?.split("T")[0],
+        dataOcorrencia: response.data.dataOcorrencia?.split("T")[0],
+        dataFechamento: response.data.dataFechamento?.split("T")[0] || "",
         localidade: {
           latitude: response.data.localidade?.latitude
             ? parseFloat(response.data.localidade.latitude)
-            : '',
+            : "",
           longitude: response.data.localidade?.longitude
             ? parseFloat(response.data.localidade.longitude)
-            : '',
+            : "",
         },
       });
       setLoading(false);
     } catch (error) {
-      console.error('Erro na requisição:', error);
-      setError('Erro ao carregar caso');
+      console.error("Erro na requisição:", error);
+      setError("Erro ao carregar caso");
       setLoading(false);
     }
   };
 
-  const loadEvidences = async (id, token) => {
+  const loadEvidences = async (casoId, token) => {
     try {
-      const response = await axios.get(`${EvidencesGET}?idCaso=${id}`, {
+      const response = await axios.get(`${EvidencesGET}?idCaso=${casoId}`, {
         headers: HeaderReq(token),
       });
       setEvidences(response.data);
     } catch (error) {
-      console.error('Erro na requisição:', error);
+      console.error("Erro na requisição:", error);
     }
   };
 
@@ -116,7 +118,7 @@ const DetalhesCasoScreen = () => {
       });
       setUserRole(response.data.role);
     } catch (error) {
-      console.error('Erro ao obter role do usuário:', error.message);
+      console.error("Erro ao obter role do usuário:", error.message);
     } finally {
       setLoading(false);
     }
@@ -131,7 +133,7 @@ const DetalhesCasoScreen = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await axios.put(`${CaseUpdatePUT}/${id}`, formData, {
+      const response = await axios.put(`${CaseUpdatePUT}/${casoId}`, formData, {
         headers: HeaderReq(token),
       });
       setCaseDetail(response.data);
@@ -140,11 +142,11 @@ const DetalhesCasoScreen = () => {
 
       setTimeout(() => {
         setShowPopup(false);
-        navigation.navigate('Cases');
+        navigation.navigate("ListaCasos");
       }, 3000);
     } catch (error) {
-      console.error('Erro na atualização:', error);
-      setError('Erro ao atualizar caso');
+      console.error("Erro na atualização:", error);
+      setError("Erro ao atualizar caso");
     }
   };
 
@@ -154,13 +156,13 @@ const DetalhesCasoScreen = () => {
   };
 
   const handleReturnCases = () => {
-    navigation.navigate('Cases');
+    navigation.navigate("ListaCasos");
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    return date.toLocaleDateString("pt-BR");
   };
 
   const displayEvidences = () => (
@@ -169,13 +171,23 @@ const DetalhesCasoScreen = () => {
         evidences.map((evidence) => (
           <Card key={evidence._id} style={styles.evidenceCard}>
             <Card.Content>
-              <Text><Text style={styles.boldText}>Tipo:</Text> {evidence.tipo}</Text>
-              <Text><Text style={styles.boldText}>Data Coleta:</Text> {formatDate(evidence.dataColeta)}</Text>
-              <Text><Text style={styles.boldText}>Coletado Por:</Text> {evidence.coletadoPor?.nome || 'Desconhecido'}</Text>
-              <Button 
-                mode="contained" 
+              <Text>
+                <Text style={styles.boldText}>Tipo:</Text> {evidence.tipo}
+              </Text>
+              <Text>
+                <Text style={styles.boldText}>Data Coleta:</Text>{" "}
+                {formatDate(evidence.dataColeta)}
+              </Text>
+              <Text>
+                <Text style={styles.boldText}>Coletado Por:</Text>{" "}
+                {evidence.coletadoPor?.nome || "Desconhecido"}
+              </Text>
+              <Button
+                mode="contained"
                 style={styles.evidenceButton}
-                onPress={() => navigation.navigate('Evidence', { id: evidence._id })}
+                onPress={() =>
+                  navigation.navigate("Evidence", { id: evidence._id })
+                }
               >
                 Ver Evidência
               </Button>
@@ -206,7 +218,7 @@ const DetalhesCasoScreen = () => {
       <Appbar.Header>
         <Appbar.BackAction onPress={handleReturnCases} />
         <Appbar.Content title="Detalhes do Caso" />
-        {!editMode && userRole !== 'assistente' && (
+        {!editMode && userRole !== "assistente" && (
           <Appbar.Action icon="pencil" onPress={toggleEditMode} />
         )}
       </Appbar.Header>
@@ -220,7 +232,9 @@ const DetalhesCasoScreen = () => {
           >
             <Card>
               <Card.Content>
-                <Text style={styles.popupText}>Caso atualizado com sucesso!</Text>
+                <Text style={styles.popupText}>
+                  Caso atualizado com sucesso!
+                </Text>
               </Card.Content>
             </Card>
           </Modal>
@@ -232,34 +246,34 @@ const DetalhesCasoScreen = () => {
               <TextInput
                 label="Título"
                 value={formData.titulo}
-                onChangeText={(text) => handleChange('titulo', text)}
+                onChangeText={(text) => handleChange("titulo", text)}
                 style={styles.input}
                 mode="outlined"
               />
-              
+
               <TextInput
                 label="Descrição"
                 value={formData.descricao}
-                onChangeText={(text) => handleChange('descricao', text)}
+                onChangeText={(text) => handleChange("descricao", text)}
                 style={styles.input}
                 mode="outlined"
                 multiline
                 numberOfLines={3}
               />
-              
+
               <TextInput
                 label="Data de Ocorrência"
                 value={formData.dataOcorrencia}
-                onChangeText={(text) => handleChange('dataOcorrencia', text)}
+                onChangeText={(text) => handleChange("dataOcorrencia", text)}
                 style={styles.input}
                 mode="outlined"
                 keyboardType="numeric"
               />
-              
+
               <TextInput
                 label="Data de Fechamento"
                 value={formData.dataFechamento}
-                onChangeText={(text) => handleChange('dataFechamento', text)}
+                onChangeText={(text) => handleChange("dataFechamento", text)}
                 style={styles.input}
                 mode="outlined"
                 keyboardType="numeric"
@@ -336,7 +350,7 @@ const DetalhesCasoScreen = () => {
                   <Text>
                     {caseDetail?.dataFechamento
                       ? formatDate(caseDetail.dataFechamento)
-                      : 'N/A'}
+                      : "N/A"}
                   </Text>
                 </Card.Content>
               </Card>
@@ -355,17 +369,23 @@ const DetalhesCasoScreen = () => {
               <Button
                 mode="contained"
                 style={styles.actionButton}
-                onPress={() => navigation.navigate('RegisterEvidence', { caseId: caseDetail?._id })}
+                onPress={() =>
+                  navigation.navigate("RegisterEvidence", {
+                    caseId: caseDetail?._id,
+                  })
+                }
               >
                 Adicionar Evidência
               </Button>
-              
-              {userRole !== 'assistente' && (
+
+              {userRole !== "assistente" && (
                 <>
                   <Button
                     mode="contained"
                     style={styles.actionButton}
-                    onPress={() => navigation.navigate('Report', { id: caseDetail?._id })}
+                    onPress={() =>
+                      navigation.navigate("Report", { id: caseDetail?._id })
+                    }
                   >
                     Gerar Relatório
                   </Button>
@@ -382,37 +402,37 @@ const DetalhesCasoScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   content: {
     padding: 16,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorText: {
-    color: 'red',
+    color: "red",
     fontSize: 16,
   },
   detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   detailCard: {
-    width: '48%',
+    width: "48%",
     marginBottom: 16,
   },
   boldText: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   divider: {
     marginVertical: 16,
@@ -421,12 +441,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   evidencesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   evidenceCard: {
-    width: '100%',
+    width: "100%",
     marginBottom: 16,
   },
   evidenceButton: {
@@ -434,9 +454,9 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
   },
   actionButton: {
     marginRight: 8,
@@ -449,8 +469,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   buttonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 16,
   },
   button: {
@@ -462,7 +482,7 @@ const styles = StyleSheet.create({
   },
   popupText: {
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 

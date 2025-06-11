@@ -1,12 +1,12 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { View, Image, StyleSheet } from "react-native";
 import { TextInput, Button, Card, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import { LoginPOST } from "../../api/PathsApi";
-import logo from "../../assets/imgs/ForenSeek2 1.png";
+import { LoginPOST } from "../api/PathsApi";
+import logo from "../../assets/ForenSeek.png";
 
 const LoginScreen = () => {
   const {
@@ -15,23 +15,29 @@ const LoginScreen = () => {
     formState: { errors, isSubmitting },
     setError,
     clearErrors,
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      matricula: "",
+      senha: "",
+    },
+  });
 
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const checkToken = async () => {
-      const token = await AsyncStorage.getItem("token");
-      if (token) {
-        navigation.navigate("Home");
-      }
-    };
-    checkToken();
-  }, []);
+  // useEffect(() => {
+  //   const checkToken = async () => {
+  //     const token = await AsyncStorage.getItem("token");
+  //     if (token) {
+  //       navigation.navigate("Home");
+  //     }
+  //   };
+  //   checkToken();
+  // }, []);
 
   const onSubmit = async (data) => {
     try {
       clearErrors();
+
       const response = await axios.post(LoginPOST, {
         matricula: data.matricula,
         senha: data.senha,
@@ -40,7 +46,7 @@ const LoginScreen = () => {
       if (response.data.token) {
         await AsyncStorage.setItem("token", response.data.token);
         await AsyncStorage.setItem("userId", String(response.data.user.id));
-        navigation.navigate("Home");
+        navigation.navigate("MainApp");
       }
     } catch (err) {
       const message =
