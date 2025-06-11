@@ -14,6 +14,8 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="Casos" component={CasosScreen} />
       <Drawer.Screen name="Dash" component={DashScreen} />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
+      <Drawer.Screen name="Cadastrar Usuario" component={UserRegister}/>
+      <Drawer.Screen name="Atualizar senha" component={passworUpdate}/>
     </Drawer.Navigator>
   );
 }
