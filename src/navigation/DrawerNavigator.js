@@ -29,6 +29,8 @@ export default function DrawerNavigator() {
         options={{ title: 'Casos' }} 
       />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
+      <Drawer.Screen name="Cadastrar Usuario" component={UserRegister}/>
+      <Drawer.Screen name="Atualizar senha" component={passworUpdate}/>
     </Drawer.Navigator>
   );
 }
