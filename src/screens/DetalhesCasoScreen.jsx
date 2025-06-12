@@ -159,6 +159,11 @@ const DetalhesCasoScreen = () => {
     navigation.navigate("ListaCasos");
   };
 
+  const handleCancelEdit = () =>{
+    setEditMode(!editMode)
+    navigation.navigate("DetalhesCaso", {casoId: caseDetail?._id})
+  }
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -186,7 +191,7 @@ const DetalhesCasoScreen = () => {
                 mode="contained"
                 style={styles.evidenceButton}
                 onPress={() =>
-                  navigation.navigate("Evidence", { id: evidence._id })
+                  navigation.navigate("DetalhesEvidencia", { evidenciaIndex: evidence._id })
                 }
               >
                 Ver Evidência
@@ -291,7 +296,7 @@ const DetalhesCasoScreen = () => {
                 </Button>
                 <Button
                   mode="outlined"
-                  onPress={toggleEditMode}
+                  onPress={handleCancelEdit}
                   style={styles.button}
                 >
                   Cancelar
@@ -370,7 +375,7 @@ const DetalhesCasoScreen = () => {
                 mode="contained"
                 style={styles.actionButton}
                 onPress={() =>
-                  navigation.navigate("RegisterEvidence", {
+                  navigation.navigate("CadastroEvidencia", {
                     caseId: caseDetail?._id,
                   })
                 }

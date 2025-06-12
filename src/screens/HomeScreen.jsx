@@ -1,10 +1,22 @@
-import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { Text, Card } from 'react-native-paper';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
+
+
+  useEffect(()=>{
+    async function fetchToken(){
+      const testeToken = await AsyncStorage.getItem('token')
+      console.log(testeToken)
+    }
+    fetchToken()
+  },[])
+
+
   return (
     <View style={styles.container}>
       <Card style={styles.card} elevation={6}>

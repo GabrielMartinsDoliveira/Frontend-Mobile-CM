@@ -1,19 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from 'axios'
+import {EvidenceDetailsGET, HeaderReq} from "../api/PathsApi"
 
 const DetalhesEvidenciaScreen = ({ route }) => {
   const { evidenciaIndex } = route.params;
   const [evidencia, setEvidencia] = useState(null);
+  const [token, setToken] = useState("");
 
   useEffect(() => {
     const carregarEvidencia = async () => {
-      const dados = await AsyncStorage.getItem('evidencias');
-      const evidencias = dados ? JSON.parse(dados) : [];
-      setEvidencia(evidencias[evidenciaIndex]);
+      try {
+        const storedToken = await AsyncStorage.getItem("token");
+        setToken(storedToken);
+
+        if (!storedToken) return;
+
+        const response = await axios(`${EvidenceDetailsGET}/${evidenciaIndex}`, {
+          headers: HeaderReq(storedToken),
+        });
+        setEvidencia(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar a evidencia:", error.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
     carregarEvidencia();
-  }, [evidenciaIndex]);
+  }, []);
 
   if (!evidencia) {
     return (
@@ -38,17 +54,17 @@ const DetalhesEvidenciaScreen = ({ route }) => {
       )}
 
       <Text style={styles.label}>Localização:</Text>
-      <Text style={styles.text}>Lat: {evidencia.localizacao?.latitude}</Text>
-      <Text style={styles.text}>Lng: {evidencia.localizacao?.longitude}</Text>
+      <Text style={styles.text}>Lat: {evidencia.localColeta?.latitude}</Text>
+      <Text style={styles.text}>Lng: {evidencia.localColeta?.longitude}</Text>
 
       <Text style={styles.label}>Data e Hora:</Text>
-      <Text style={styles.text}>{evidencia.dataHora}</Text>
+      <Text style={styles.text}>{evidencia.dataColeta}</Text>
 
       <Text style={styles.label}>Caso Relacionado:</Text>
-      <Text style={styles.text}>{evidencia.casoRelacionado}</Text>
+      <Text style={styles.text}>{evidencia.casoRelacionado?.titulo}</Text>
 
       <Text style={styles.label}>Perito Responsável:</Text>
-      <Text style={styles.text}>{evidencia.peritoResponsavel}</Text>
+      <Text style={styles.text}>{evidencia.coletadoPor?.nome}</Text>
     </ScrollView>
   );
 };
@@ -56,27 +72,27 @@ const DetalhesEvidenciaScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: "#fff",
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15
+    fontWeight: "bold",
+    marginBottom: 15,
   },
   label: {
-    fontWeight: 'bold',
-    marginTop: 10
+    fontWeight: "bold",
+    marginTop: 10,
   },
   text: {
-    marginBottom: 10
+    marginBottom: 10,
   },
   image: {
-    width: '100%',
+    width: "100%",
     height: 200,
     marginTop: 10,
     marginBottom: 10,
-    borderRadius: 10
-  }
+    borderRadius: 10,
+  },
 });
 
 export default DetalhesEvidenciaScreen;

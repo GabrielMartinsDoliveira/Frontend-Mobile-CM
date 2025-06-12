@@ -1,27 +1,20 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import {
   Appbar,
   TextInput,
-  DataTable,
   Text,
   Button,
   Menu,
   Divider,
   Chip,
   IconButton,
-  Portal,
-  Modal,
+  Card
 } from "react-native-paper";
+import { DatePickerModal } from "react-native-paper-dates";
 import { CasesGET, HeaderReq } from "../api/PathsApi";
 
 const CasosScreen = () => {
@@ -29,27 +22,25 @@ const CasosScreen = () => {
   const [cases, setCases] = useState([]);
   const [responsibleFilter, setResponsibleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState("");
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
   const handleGoToCase = (id) => {
-    navigation.navigate("DetalhesCaso", {casoId: id} );
+    navigation.navigate("DetalhesCaso", { casoId: id });
   };
 
   useEffect(() => {
     const loadTokenAndCases = async () => {
       try {
         const storedToken = await AsyncStorage.getItem("token");
-        setToken(storedToken);
-
         if (!storedToken) return;
 
         const response = await axios(CasesGET, {
           headers: HeaderReq(storedToken),
         });
+
         setCases(response.data);
       } catch (error) {
         console.error("Erro ao buscar casos:", error.message);
@@ -61,6 +52,28 @@ const CasosScreen = () => {
     loadTokenAndCases();
   }, []);
 
+  const onDismissSingle = useCallback(() => {
+    setDatePickerVisible(false);
+  }, []);
+
+  const onConfirmSingle = useCallback((params) => {
+    if (params?.date) {
+      const selectedDate = new Date(params.date);
+      setDateFilter(selectedDate);
+    }
+    setDatePickerVisible(false);
+  }, []);
+
+  const isSameDay = (d1, d2) => {
+    return (
+      d1 &&
+      d2 &&
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear()
+    );
+  };
+
   const filteredCases = cases.filter((item) => {
     const matchesResponsible = item.responsavel.nome
       .toLowerCase()
@@ -69,15 +82,15 @@ const CasosScreen = () => {
     const matchesStatus =
       statusFilter === "all" || item.status === statusFilter;
 
+    const itemDate = new Date(item.dataAbertura);
     const matchesDate =
-      !dateFilter ||
-      new Date(item.dataAbertura).toISOString().split("T")[0] === dateFilter;
+      !dateFilter || (dateFilter instanceof Date && isSameDay(itemDate, dateFilter));
 
     return matchesResponsible && matchesStatus && matchesDate;
   });
 
   const clearDateFilter = () => {
-    setDateFilter("");
+    setDateFilter(null);
   };
 
   const getStatusColor = (status) => {
@@ -98,10 +111,19 @@ const CasosScreen = () => {
     return date.toLocaleDateString("pt-BR");
   };
 
+  const formatFilterDate = (date) => {
+    return date instanceof Date ? date.toLocaleDateString("pt-BR") : "";
+  };
+
   return (
     <View style={styles.container}>
       <Appbar.Header>
-        <Appbar.Content title="Casos" />
+        <Appbar.BackAction onPress={() => navigation.navigate("Home")} />
+        <Appbar.Content title="Lista de Casos" />
+        <Appbar.Action
+          icon="plus"
+          onPress={() => navigation.navigate("CadastrarCaso")}
+        />
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -162,7 +184,7 @@ const CasosScreen = () => {
           <View style={styles.dateFilterContainer}>
             <TextInput
               label="Data de abertura"
-              value={dateFilter}
+              value={formatFilterDate(dateFilter)}
               onFocus={() => setDatePickerVisible(true)}
               style={styles.filterInput}
               mode="outlined"
@@ -171,86 +193,64 @@ const CasosScreen = () => {
                   <TextInput.Icon icon="close" onPress={clearDateFilter} />
                 ) : null
               }
+              editable={false}
+            />
+
+            <DatePickerModal
+              locale="pt"
+              mode="single"
+              visible={datePickerVisible}
+              onDismiss={onDismissSingle}
+              date={dateFilter}
+              onConfirm={onConfirmSingle}
+              label="Selecione a data"
+              animationType="slide"
+              startYear={2000}
+              endYear={new Date().getFullYear()}
             />
           </View>
-
-          <Portal>
-            <Modal
-              visible={datePickerVisible}
-              onDismiss={() => setDatePickerVisible(false)}
-              contentContainerStyle={styles.modalContainer}
-            >
-              <View style={styles.datePickerModal}>
-                <Button
-                  mode="contained"
-                  onPress={() => {
-                    const today = new Date().toISOString().split("T")[0];
-                    setDateFilter(today);
-                    setDatePickerVisible(false);
-                  }}
-                >
-                  Hoje
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => {
-                    setDateFilter("");
-                    setDatePickerVisible(false);
-                  }}
-                  style={{ marginTop: 10 }}
-                >
-                  Limpar
-                </Button>
-              </View>
-            </Modal>
-          </Portal>
         </View>
 
-        <DataTable style={styles.table}>
-          <DataTable.Header>
-            <DataTable.Title>ID</DataTable.Title>
-            <DataTable.Title>Responsável</DataTable.Title>
-            <DataTable.Title>Data Abertura</DataTable.Title>
-            <DataTable.Title>Status</DataTable.Title>
-            <DataTable.Title numeric>Ações</DataTable.Title>
-          </DataTable.Header>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator animating={true} size="large" />
+            <Text style={styles.loadingText}>Carregando casos...</Text>
+          </View>
+        ) : filteredCases.length === 0 ? (
+          <View style={styles.noResultsContainer}>
+            <Text>Nenhum caso encontrado</Text>
+          </View>
+        ) : (
+          filteredCases.map((caso, index) => (
+            <Card key={caso._id} style={styles.card}>
+              <Card.Title title={`Caso #${index + 1}`} />
+              <Card.Content>
+                <Text style={styles.label}>Responsável:</Text>
+                <Text>{caso.responsavel.nome}</Text>
 
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator animating={true} size="large" />
-              <Text style={styles.loadingText}>Carregando casos...</Text>
-            </View>
-          ) : filteredCases.length === 0 ? (
-            <View style={styles.noResultsContainer}>
-              <Text>Nenhum caso encontrado</Text>
-            </View>
-          ) : (
-            filteredCases.map((caso, index) => (
-              <DataTable.Row key={caso._id}>
-                <DataTable.Cell>{index + 1}</DataTable.Cell>
-                <DataTable.Cell>{caso.responsavel.nome}</DataTable.Cell>
-                <DataTable.Cell>{formatDate(caso.dataAbertura)}</DataTable.Cell>
-                <DataTable.Cell>
-                  <Chip
-                    style={{ backgroundColor: getStatusColor(caso.status) }}
-                    textStyle={{
-                      color: caso.status === "Em andamento" ? "#000" : "#fff",
-                    }}
-                  >
-                    {caso.status}
-                  </Chip>
-                </DataTable.Cell>
-                <DataTable.Cell numeric>
-                  <IconButton
-                    icon="pencil"
-                    onPress={() => handleGoToCase(caso._id)}
-                    size={20}
-                  />
-                </DataTable.Cell>
-              </DataTable.Row>
-            ))
-          )}
-        </DataTable>
+                <Text style={styles.label}>Data de Abertura:</Text>
+                <Text>{formatDate(caso.dataAbertura)}</Text>
+
+                <Text style={styles.label}>Status:</Text>
+                <Chip
+                  style={[styles.chip, { backgroundColor: getStatusColor(caso.status) }]}
+                  textStyle={{
+                    color: caso.status === "Em andamento" ? "#000" : "#fff",
+                  }}
+                >
+                  {caso.status}
+                </Chip>
+              </Card.Content>
+              <Card.Actions style={styles.actions}>
+                <IconButton
+                  icon="pencil"
+                  onPress={() => handleGoToCase(caso._id)}
+                  size={20}
+                />
+              </Card.Actions>
+            </Card>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -274,11 +274,6 @@ const styles = StyleSheet.create({
   dateFilterContainer: {
     position: "relative",
   },
-  table: {
-    backgroundColor: "#fff",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
   loadingContainer: {
     padding: 20,
     alignItems: "center",
@@ -292,14 +287,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  modalContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
+  card: {
+    marginBottom: 12,
+    backgroundColor: "#fff",
   },
-  datePickerModal: {
-    padding: 20,
+  chip: {
+    marginTop: 4,
+    alignSelf: "flex-start",
+  },
+  label: {
+    fontWeight: "bold",
+    marginTop: 8,
+  },
+  actions: {
+    justifyContent: "flex-end",
   },
 });
 

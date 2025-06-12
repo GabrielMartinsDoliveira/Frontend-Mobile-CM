@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { Snackbar } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";;
-import UserForm from "../components/forms/UserForm";
+import UserForm from "../components/UserForm";
 import { HeaderReq, UserPOST } from "../api/PathsApi";
 
 
@@ -32,7 +32,7 @@ const CadastroUsuarioScreen = () => {
 
       setTimeout(() => {
         setShowSnackbar(false);
-        navigation.navigate("HomeScreen");
+        navigation.navigate("Home");
       }, 3000);
     } catch (error) {
       console.error("Erro ao registrar usuário:", error);

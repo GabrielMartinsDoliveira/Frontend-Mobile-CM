@@ -24,16 +24,6 @@ const LoginScreen = () => {
 
   const navigation = useNavigation();
 
-  // useEffect(() => {
-  //   const checkToken = async () => {
-  //     const token = await AsyncStorage.getItem("token");
-  //     if (token) {
-  //       navigation.navigate("Home");
-  //     }
-  //   };
-  //   checkToken();
-  // }, []);
-
   const onSubmit = async (data) => {
     try {
       clearErrors();
@@ -45,7 +35,8 @@ const LoginScreen = () => {
 
       if (response.data.token) {
         await AsyncStorage.setItem("token", response.data.token);
-        await AsyncStorage.setItem("userId", String(response.data.user.id));
+        await AsyncStorage.setItem("idUsuario", response.data.user.id);
+        console.log(response.data.user.id)
         navigation.navigate("MainApp");
       }
     } catch (err) {

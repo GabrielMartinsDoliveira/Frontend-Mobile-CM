@@ -4,12 +4,14 @@ import { TextInput, Button } from 'react-native-paper';
 
 const UserForm = ({ onSubmit }) => {
   const [nome, setNome] = useState('');
+  const [matricula, setMatricula] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
   const handleSubmit = () => {
     const data = {
       nome,
+      matricula,
       email,
       senha,
     };
@@ -22,6 +24,13 @@ const UserForm = ({ onSubmit }) => {
         label="Nome"
         value={nome}
         onChangeText={setNome}
+        mode="outlined"
+        style={styles.input}
+      />
+      <TextInput
+        label="Matricula"
+        value={matricula}
+        onChangeText={setMatricula}
         mode="outlined"
         style={styles.input}
       />

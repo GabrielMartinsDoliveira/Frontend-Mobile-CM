@@ -1,286 +1,251 @@
-import { useState } from "react";
-import { View, ScrollView } from "react-native";
-import {
-  TextInput,
-  Button,
-  Card,
-  Title,
-  Divider,
-  Text,
-  HelperText,
-  Menu,
-  Provider as PaperProvider,
-  RadioButton,
-  List,
-} from "react-native-paper";
-import { launchImageLibrary } from "react-native-image-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, StyleSheet } from "react-native";
+import { TextInput, Button, Text, HelperText, Snackbar, Divider } from "react-native-paper";
+import { useForm, Controller } from "react-hook-form";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import * as Location from "expo-location";
+import { CasePOST, HeaderReq, UserByIdGET } from "../api/PathsApi";
+import { useNavigation } from "@react-navigation/native";
 
-const CadastroCasoPericia = () => {
-  const [formData, setFormData] = useState({
-    titulo: "",
-    id: "",
-    responsavel: "",
-    status: "em_andamento",
-    dataOcorrencia: new Date(),
-    dataCadastro: new Date(),
-    descricao: "",
-    evidencias: [],
-  });
+const CadastroCasoScreen = () => {
+  const [userCase, setUserCase] = useState(null);
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const navigation = useNavigation();
 
-  const [errors, setErrors] = useState({});
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState("ocorrencia");
-  const [responsavelVisible, setResponsavelVisible] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm();
 
-  // Lista de peritos cadastrados (simulando dados)
-  const peritos = [
-    { id: "1", nome: "Dr. Carlos Silva" },
-    { id: "2", nome: "Dra. Ana Oliveira" },
-    { id: "3", nome: "Dr. Marcos Souza" },
-  ];
-
-  const handleChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
-  const handleSubmit = () => {
-    // Validação e submissão do formulário
-    console.log("Dados do caso:", formData);
-  };
-
-  const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      if (pickerMode === "ocorrencia") {
-        handleChange("dataOcorrencia", selectedDate);
-      } else {
-        handleChange("dataCadastro", selectedDate);
-      }
+  const onSubmit = async (data) => {
+    try {
+      const payload = {
+        ...data,
+        localidade: {
+          latitude,
+          longitude,
+        },
+      };
+      await axios.post(CasePOST, payload, {
+        headers: HeaderReq(await AsyncStorage.getItem("token")),
+      });
+      setShowSnackbar(true);
+      setTimeout(() => navigation.goBack(), 3000);
+    } catch (error) {
+      console.error("Erro ao criar caso:", error);
     }
   };
-  const addEvidencia = () => {
-    launchImageLibrary({ mediaType: "photo" }, (response) => {
-      if (!response.didCancel && !response.error) {
-        const novaEvidencia = response.assets[0].uri;
-        setFormData({
-          ...formData,
-          evidencias: [...formData.evidencias, novaEvidencia],
-        });
-      }
-    });
+
+  const getUserCase = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("idUsuario");
+      const response = await axios.get(`${UserByIdGET}/${userId}`, {
+        headers: HeaderReq(token),
+      });
+      setUserCase(response.data);
+      setValue("responsavel", response.data._id);
+    } catch (error) {
+      console.error("Erro ao buscar usuário:", error);
+    }
   };
 
-  /*
-  const addEvidencia = () => {
-    // Lógica para adicionar evidência (imagem)
-    // Pode usar react-native-image-picker ou similar
+  const getLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.error("Permissão de localização negada");
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+    } catch (error) {
+      console.error("Erro ao obter localização:", error);
+    }
   };
-  */
+
+  useEffect(() => {
+    getUserCase();
+    getLocation();
+    const hoje = new Date().toISOString().split("T")[0];
+    setValue("dataAbertura", hoje);
+  }, []);
 
   return (
-    <PaperProvider>
-      <ScrollView style={{ padding: 16 }}>
-        <Card>
-          <Card.Content>
-            <Title style={{ marginBottom: 16 }}>
-              Cadastro de Caso de Perícia
-            </Title>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text variant="headlineMedium" style={styles.title}>Cadastrar Caso de Perícia</Text>
 
-            {/* Título do Caso */}
-            <TextInput
-              label="Título do Caso"
-              value={formData.titulo}
-              onChangeText={(text) => handleChange("titulo", text)}
-              mode="outlined"
-              error={errors.titulo}
-            />
-            {errors.titulo && (
-              <HelperText type="error">{errors.titulo}</HelperText>
-            )}
+      <Divider style={{ marginBottom: 16 }} />
 
-            {/* ID (pode ser gerado automaticamente) */}
-            <TextInput
-              label="ID do Caso"
-              value={formData.id}
-              onChangeText={(text) => handleChange("id", text)}
-              mode="outlined"
-              style={{ marginTop: 16 }}
-              disabled // Se o ID for gerado automaticamente
-            />
+      <Controller
+        control={control}
+        name="responsavel"
+        rules={{ required: true }}
+        render={({ field: { value } }) => (
+          <TextInput
+            label="Responsável"
+            value={userCase?.nome || "Carregando..."}
+            disabled
+            style={styles.input}
+          />
+        )}
+      />
+      {errors.responsavel && <HelperText type="error">Responsável é obrigatório</HelperText>}
 
-            {/* Responsável (Menu Dropdown) */}
-            <View style={{ marginTop: 16 }}>
-              <Text variant="labelLarge">Responsável</Text>
-              <Menu
-                visible={responsavelVisible}
-                onDismiss={() => setResponsavelVisible(false)}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    onPress={() => setResponsavelVisible(true)}
-                    style={{ marginTop: 8 }}
-                  >
-                    {formData.responsavel || "Selecione o responsável"}
-                  </Button>
-                }
-              >
-                {peritos.map((perito) => (
-                  <Menu.Item
-                    key={perito.id}
-                    onPress={() => {
-                      handleChange("responsavel", perito.nome);
-                      setResponsavelVisible(false);
-                    }}
-                    title={perito.nome}
-                  />
-                ))}
-              </Menu>
-            </View>
+      <Controller
+        control={control}
+        name="status"
+        rules={{ required: true }}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="Status (Ex: Em andamento)"
+            value={value}
+            onChangeText={onChange}
+            style={styles.input}
+          />
+        )}
+      />
+      {errors.status && <HelperText type="error">Status é obrigatório</HelperText>}
 
-            {/* Status (Radio Buttons) */}
-            <View style={{ marginTop: 16 }}>
-              <Text variant="labelLarge">Status</Text>
-              <RadioButton.Group
-                onValueChange={(value) => handleChange("status", value)}
-                value={formData.status}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <RadioButton value="em_andamento" />
-                  <Text>Em Andamento</Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <RadioButton value="finalizado" />
-                  <Text>Finalizado</Text>
-                </View>
-              </RadioButton.Group>
-            </View>
+      <Controller
+        control={control}
+        name="titulo"
+        rules={{ required: "Título é obrigatório" }}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="Título"
+            value={value}
+            onChangeText={onChange}
+            style={styles.input}
+            error={!!errors.titulo}
+          />
+        )}
+      />
+      {errors.titulo && <HelperText type="error">{errors.titulo.message}</HelperText>}
 
-            {/* Data de Ocorrência */}
-            <View style={{ marginTop: 16 }}>
-              <Text variant="labelLarge">Data de Ocorrência</Text>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setPickerMode("ocorrencia");
-                  setShowDatePicker(true);
-                }}
-                style={{ marginTop: 8 }}
-              >
-                {formData.dataOcorrencia.toLocaleDateString()}
-              </Button>
-            </View>
+      <Controller
+        control={control}
+        name="dataAbertura"
+        rules={{ required: true }}
+        render={({ field: { value } }) => (
+          <TextInput
+            label="Data de Abertura"
+            value={value}
+            style={styles.input}
+            disabled
+          />
+        )}
+      />
 
-            {/* Data de Cadastro */}
-            <View style={{ marginTop: 16 }}>
-              <Text variant="labelLarge">Data de Cadastro</Text>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setPickerMode("cadastro");
-                  setShowDatePicker(true);
-                }}
-                style={{ marginTop: 8 }}
-              >
-                {formData.dataCadastro.toLocaleDateString()}
-              </Button>
-            </View>
+      <Controller
+        control={control}
+        name="dataOcorrencia"
+        rules={{ required: true }}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="Data da Ocorrência (YYYY-MM-DD)"
+            value={value}
+            onChangeText={onChange}
+            style={styles.input}
+          />
+        )}
+      />
+      {errors.dataOcorrencia && <HelperText type="error">Data da Ocorrência é obrigatória</HelperText>}
 
-            {showDatePicker && (
-              <DateTimePicker
-                value={
-                  pickerMode === "ocorrencia"
-                    ? formData.dataOcorrencia
-                    : formData.dataCadastro
-                }
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-              />
-            )}
+      <Controller
+        control={control}
+        name="descricao"
+        rules={{ required: "Descrição é obrigatória" }}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="Descrição"
+            value={value}
+            onChangeText={onChange}
+            multiline
+            numberOfLines={5}
+            style={styles.textArea}
+          />
+        )}
+      />
+      {errors.descricao && <HelperText type="error">{errors.descricao.message}</HelperText>}
 
-            {/* Descrição */}
-            <TextInput
-              label="Descrição do Caso"
-              value={formData.descricao}
-              onChangeText={(text) => handleChange("descricao", text)}
-              mode="outlined"
-              multiline
-              numberOfLines={4}
-              style={{ marginTop: 16 }}
-            />
+      <Controller
+        control={control}
+        name="vitima"
+        rules={{ required: "A vítima é obrigatória" }}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="ID da Vítima"
+            value={value}
+            onChangeText={onChange}
+            style={styles.input}
+          />
+        )}
+      />
+      {errors.vitima && <HelperText type="error">{errors.vitima.message}</HelperText>}
 
-            {/* Evidências */}
-            <View style={{ marginTop: 24 }}>
-              <Text variant="titleSmall">Evidências</Text>
-              <Divider style={{ marginVertical: 8 }} />
+      <View style={styles.buttonGroup}>
+        <Button
+          mode="contained"
+          onPress={handleSubmit(onSubmit)}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          style={styles.button}
+        >
+          Criar Caso
+        </Button>
+        <Button
+          mode="outlined"
+          onPress={() => navigation.goBack()}
+          style={styles.button}
+        >
+          Voltar
+        </Button>
+      </View>
 
-              {formData.evidencias.length > 0 ? (
-                <View>
-                  {/* Lista de evidências adicionadas */}
-                  {formData.evidencias.map((evidencia, index) => (
-                    <List.Item
-                      key={index}
-                      title={`Evidência ${index + 1}`}
-                      left={(props) => <List.Icon {...props} icon="image" />}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={{ fontStyle: "italic" }}>
-                  Nenhuma evidência adicionada
-                </Text>
-              )}
-
-              <Button
-                mode="contained-tonal"
-                icon="plus"
-                onPress={addEvidencia}
-                style={{ marginTop: 16 }}
-              >
-                Adicionar Evidência
-              </Button>
-            </View>
-
-            {/* Botão de Submissão */}
-            <Button
-              mode="contained"
-              onPress={handleSubmit}
-              style={{ marginTop: 32 }}
-            >
-              Cadastrar Caso
-            </Button>
-          </Card.Content>
-        </Card>
-      </ScrollView>
-    </PaperProvider>
+      <Snackbar
+        visible={showSnackbar}
+        onDismiss={() => setShowSnackbar(false)}
+        duration={3000}
+      >
+        Caso criado com sucesso!
+      </Snackbar>
+    </ScrollView>
   );
 };
 
-export default CadastroCasoPericia;
-import DateTimePicker from "@react-native-community/datetimepicker";
-
-/*
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-
-export default function CasosScreen() {
-  return (
-    <View style={styles.container}>
-      <Text variant="titleLarge">TELA DE CASOS E GERENCIAMENTO</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
+    padding: 20,
+    backgroundColor: '#f4f4f4',
+    flexGrow: 1,
+  },
+  title: {
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  input: {
+    marginBottom: 16,
+  },
+  textArea: {
+    marginBottom: 16,
+    height: 120,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  button: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
+    marginHorizontal: 8,
   },
 });
-*/
+
+export default CadastroCasoScreen;
