@@ -122,7 +122,7 @@ export default LoginScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f2f5",
+    backgroundColor: "#05253E",
     justifyContent: "center",
     padding: 16,
   },
@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
     padding: 16,
     elevation: 4,
     borderRadius: 12,
+    
   },
   logo: {
     width: "100%",
@@ -141,6 +142,8 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
+    backgroundColor:"#05253E",
+    color:"#fffff"
   },
   errorText: {
     color: "red",

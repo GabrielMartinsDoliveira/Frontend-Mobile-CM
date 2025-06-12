@@ -1,22 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import {
   Appbar,
   Card,
-  Title,
   Text,
   Button,
   Divider,
   ActivityIndicator,
-  Chip,
   Modal,
   Portal,
   TextInput,
   HelperText,
 } from "react-native-paper";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   CasesDetailsGET,
   CaseUpdatePUT,
@@ -24,7 +23,6 @@ import {
   HeaderReq,
   UserByIdGET,
 } from "../api/PathsApi";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 const DetalhesCasoScreen = () => {
   const route = useRoute();
@@ -51,10 +49,34 @@ const DetalhesCasoScreen = () => {
   const [userId, setUserId] = useState("");
   const [userRole, setUserRole] = useState("");
   const [showPopup, setShowPopup] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState({
+    ocorrencia: false,
+    fechamento: false,
+  });
+
+  // Funções de validação de data
+  const validateDate = (dateString) => {
+    if (!dateString) return true;
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+  };
+
+  const formatDateInput = (text) => {
+    let cleaned = text.replace(/\D/g, '');
+    
+    if (cleaned.length > 4) {
+      cleaned = `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 8)}`;
+    } else if (cleaned.length > 2) {
+      cleaned = `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}`;
+    }
+    
+    return cleaned.slice(0, 10);
+  };
 
   useEffect(() => {
-    console.log(casoId)
-
     const loadData = async () => {
       const storedToken = await AsyncStorage.getItem("token");
       const storedUserId = await AsyncStorage.getItem("userId");
@@ -132,6 +154,17 @@ const DetalhesCasoScreen = () => {
   };
 
   const handleSubmit = async () => {
+    // Validação das datas
+    if (formData.dataOcorrencia && !validateDate(formData.dataOcorrencia)) {
+      setError("Formato de data de ocorrência inválido (use AAAA-MM-DD)");
+      return;
+    }
+
+    if (formData.dataFechamento && !validateDate(formData.dataFechamento)) {
+      setError("Formato de data de fechamento inválido (use AAAA-MM-DD)");
+      return;
+    }
+
     try {
       const response = await axios.put(`${CaseUpdatePUT}/${casoId}`, formData, {
         headers: HeaderReq(token),
@@ -159,10 +192,10 @@ const DetalhesCasoScreen = () => {
     navigation.navigate("ListaCasos");
   };
 
-  const handleCancelEdit = () =>{
-    setEditMode(!editMode)
-    navigation.navigate("DetalhesCaso", {casoId: caseDetail?._id})
-  }
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    loadCase(token);
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -221,7 +254,11 @@ const DetalhesCasoScreen = () => {
   return (
     <View style={styles.container}>
       <Appbar.Header>
-        <Appbar.BackAction onPress={handleReturnCases} />
+        {editMode ? (
+          <Appbar.BackAction onPress={handleCancelEdit} />
+        ) : (
+          <Appbar.BackAction onPress={handleReturnCases} />
+        )}
         <Appbar.Content title="Detalhes do Caso" />
         {!editMode && userRole !== "assistente" && (
           <Appbar.Action icon="pencil" onPress={toggleEditMode} />
@@ -266,23 +303,83 @@ const DetalhesCasoScreen = () => {
                 numberOfLines={3}
               />
 
-              <TextInput
-                label="Data de Ocorrência"
-                value={formData.dataOcorrencia}
-                onChangeText={(text) => handleChange("dataOcorrencia", text)}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="numeric"
-              />
+              <View style={styles.dateInputContainer}>
+                <TextInput
+                  label="Data de Ocorrência"
+                  value={formData.dataOcorrencia}
+                  onChangeText={(text) => {
+                    const formatted = formatDateInput(text);
+                    handleChange("dataOcorrencia", formatted);
+                  }}
+                  style={[
+                    styles.input,
+                    !validateDate(formData.dataOcorrencia) && styles.invalidInput
+                  ]}
+                  mode="outlined"
+                  keyboardType="numeric"
+                  maxLength={10}
+                  placeholder="AAAA-MM-DD"
+                  right={
+                    <TextInput.Icon
+                      icon="calendar"
+                      onPress={() => setShowDatePicker({...showDatePicker, ocorrencia: true})}
+                    />
+                  }
+                />
+              </View>
 
-              <TextInput
-                label="Data de Fechamento"
-                value={formData.dataFechamento}
-                onChangeText={(text) => handleChange("dataFechamento", text)}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="numeric"
-              />
+              <View style={styles.dateInputContainer}>
+                <TextInput
+                  label="Data de Fechamento"
+                  value={formData.dataFechamento}
+                  onChangeText={(text) => {
+                    const formatted = formatDateInput(text);
+                    handleChange("dataFechamento", formatted);
+                  }}
+                  style={[
+                    styles.input,
+                    !validateDate(formData.dataFechamento) && styles.invalidInput
+                  ]}
+                  mode="outlined"
+                  keyboardType="numeric"
+                  maxLength={10}
+                  placeholder="AAAA-MM-DD"
+                  right={
+                    <TextInput.Icon
+                      icon="calendar"
+                      onPress={() => setShowDatePicker({...showDatePicker, fechamento: true})}
+                    />
+                  }
+                />
+              </View>
+
+              {showDatePicker.ocorrencia && (
+                <DateTimePicker
+                  value={new Date(formData.dataOcorrencia || Date.now())}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowDatePicker({...showDatePicker, ocorrencia: false});
+                    if (date) {
+                      handleChange("dataOcorrencia", date.toISOString().split('T')[0]);
+                    }
+                  }}
+                />
+              )}
+
+              {showDatePicker.fechamento && (
+                <DateTimePicker
+                  value={new Date(formData.dataFechamento || Date.now())}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowDatePicker({...showDatePicker, fechamento: false});
+                    if (date) {
+                      handleChange("dataFechamento", date.toISOString().split('T')[0]);
+                    }
+                  }}
+                />
+              )}
 
               {error && <HelperText type="error">{error}</HelperText>}
 
@@ -291,6 +388,10 @@ const DetalhesCasoScreen = () => {
                   mode="contained"
                   onPress={handleSubmit}
                   style={styles.button}
+                  disabled={
+                    !validateDate(formData.dataOcorrencia) || 
+                    (formData.dataFechamento && !validateDate(formData.dataFechamento))
+                  }
                 >
                   Salvar
                 </Button>
@@ -363,7 +464,7 @@ const DetalhesCasoScreen = () => {
 
             <Divider style={styles.divider} />
 
-            <Title style={styles.sectionTitle}>Evidências</Title>
+            <Text variant="titleLarge" style={styles.sectionTitle}>Evidências</Text>
             {evidences ? (
               displayEvidences()
             ) : (
@@ -376,7 +477,7 @@ const DetalhesCasoScreen = () => {
                 style={styles.actionButton}
                 onPress={() =>
                   navigation.navigate("CadastroEvidencia", {
-                    caseId: caseDetail?._id,
+                    casoId: caseDetail?._id,
                   })
                 }
               >
@@ -384,17 +485,15 @@ const DetalhesCasoScreen = () => {
               </Button>
 
               {userRole !== "assistente" && (
-                <>
-                  <Button
-                    mode="contained"
-                    style={styles.actionButton}
-                    onPress={() =>
-                      navigation.navigate("Report", { id: caseDetail?._id })
-                    }
-                  >
-                    Gerar Relatório
-                  </Button>
-                </>
+                <Button
+                  mode="contained"
+                  style={styles.actionButton}
+                  onPress={() =>
+                    navigation.navigate("CadastroRelatorio", { casoId: caseDetail?._id })
+                  }
+                >
+                  Gerar Relatório
+                </Button>
               )}
             </View>
           </>
@@ -407,7 +506,7 @@ const DetalhesCasoScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#dee1eb",
   },
   content: {
     padding: 16,
@@ -456,6 +555,7 @@ const styles = StyleSheet.create({
   },
   evidenceButton: {
     marginTop: 8,
+    backgroundColor: '#05253E'
   },
   actionButtons: {
     marginTop: 16,
@@ -466,12 +566,20 @@ const styles = StyleSheet.create({
   actionButton: {
     marginRight: 8,
     marginBottom: 8,
+    backgroundColor: '#05253E'
   },
   editFormCard: {
     marginBottom: 16,
   },
   input: {
     marginBottom: 16,
+  },
+  invalidInput: {
+    backgroundColor: '#FFF0F0',
+    borderColor: '#FF0000',
+  },
+  dateInputContainer: {
+    position: 'relative',
   },
   buttonGroup: {
     flexDirection: "row",

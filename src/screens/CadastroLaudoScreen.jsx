@@ -12,14 +12,12 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import {
-  EvidenceDetailsGET,
-  HeaderReq,
-  LaudoPOST,
-} from "../api/PathsApi";
+import { EvidenceDetailsGET, HeaderReq, LaudoPOST } from "../api/PathsApi";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
-const CadastroLaudoSecren = () => {
+const CadastroLaudoScreen = () => {
   const route = useRoute();
   const { idEvidencia } = route.params;
   const navigation = useNavigation();
@@ -80,13 +78,52 @@ const CadastroLaudoSecren = () => {
       }
 
       setShowSnackbar(true);
+      await generatePDF({
+        descricao: laudo.descricao,
+        dataEmissao: laudo.dataEmissao,
+        tipo: evidenceInfo?.tipo,
+        descricaoEvidencia: evidenceInfo?.descricao,
+        dataColeta: evidenceInfo?.dataColeta,
+      });
       setTimeout(() => {
-        navigation.goBack();
+        navigation.navigate("DetalhesEvidencia", idEvidencia );
       }, 2000);
     } catch (err) {
       setError(err.message);
     }
   };
+
+  const generatePDF = async (data) => {
+  const htmlContent = `
+    <h1>Laudo Técnico</h1>
+    <p><strong>Data de Emissão:</strong> ${data.dataEmissao}</p>
+    <p><strong>Tipo de Evidência:</strong> ${data.tipo}</p>
+    <p><strong>Descrição da Evidência:</strong> ${data.descricaoEvidencia}</p>
+    <p><strong>Data de Coleta:</strong> ${new Date(data.dataColeta).toLocaleDateString("pt-BR")}</p>
+    <p><strong>Conteúdo do Laudo:</strong></p>
+    <p>${data.descricao}</p>
+    <p><em>Gerado em ${new Date().toLocaleString("pt-BR")}</em></p>
+  `;
+
+  try {
+    const { uri } = await Print.printToFileAsync({
+      html: htmlContent,
+      base64: false,
+    });
+
+    console.log("PDF gerado em:", uri);
+
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri);
+    } else {
+      alert("Compartilhamento não está disponível neste dispositivo");
+    }
+
+    return uri;
+  } catch (err) {
+    console.error("Erro ao gerar PDF:", err);
+  }
+};
 
   const showDatePicker = () => {
     setDatePickerVisibility(true);
@@ -224,7 +261,7 @@ const CadastroLaudoSecren = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#dee1eb",
   },
   scrollContainer: {
     padding: 16,
@@ -278,4 +315,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CadastroLaudoSecren;
+export default CadastroLaudoScreen;

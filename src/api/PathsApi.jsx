@@ -38,6 +38,8 @@ export const ReportPOST = `${apiUrl}/report`;
 
 export const PacientsGET = `${apiUrl}/pacient`
 
+export const PacientPOST = `${apiUrl}/pacient`
+
 export const HeaderReq = (token) => {
   return {
     Authorization: `Bearer ${token}`,

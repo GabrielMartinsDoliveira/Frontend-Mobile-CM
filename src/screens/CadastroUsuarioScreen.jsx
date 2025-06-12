@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
-import { Snackbar } from "react-native-paper";
-import AsyncStorage from "@react-native-async-storage/async-storage";;
+import { Snackbar, Appbar } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import UserForm from "../components/UserForm";
 import { HeaderReq, UserPOST } from "../api/PathsApi";
-
 
 const CadastroUsuarioScreen = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -40,17 +39,22 @@ const CadastroUsuarioScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <>
+      <Appbar.Header>
+        <Appbar.BackAction onPress={() => navigation.navigate("Home")} />
+        <Appbar.Content title="Cadastro de Novo Usuário" />
+      </Appbar.Header>
       <UserForm onSubmit={handleSubmitForm} />
-
-      <Snackbar
-        visible={showSnackbar}
-        onDismiss={() => setShowSnackbar(false)}
-        duration={3000}
-      >
-        Usuário cadastrado com sucesso!
-      </Snackbar>
-    </View>
+      <View style={styles.container}>
+        <Snackbar
+          visible={showSnackbar}
+          onDismiss={() => setShowSnackbar(false)}
+          duration={3000}
+        >
+          Usuário cadastrado com sucesso!
+        </Snackbar>
+      </View>
+    </>
   );
 };
 
@@ -59,7 +63,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#dee1eb",
   },
 });
 

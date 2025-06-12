@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import { View, StyleSheet, ScrollView, Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from 'axios'
-import {EvidenceDetailsGET, HeaderReq} from "../api/PathsApi"
+import axios from "axios";
+import { EvidenceDetailsGET, HeaderReq } from "../api/PathsApi";
+import { TextInput, Button, Text, Appbar } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
 
 const DetalhesEvidenciaScreen = ({ route }) => {
   const { evidenciaIndex } = route.params;
   const [evidencia, setEvidencia] = useState(null);
   const [token, setToken] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const navigator = useNavigation();
 
   useEffect(() => {
     const carregarEvidencia = async () => {
@@ -17,12 +21,17 @@ const DetalhesEvidenciaScreen = ({ route }) => {
 
         if (!storedToken) return;
 
-        const response = await axios(`${EvidenceDetailsGET}/${evidenciaIndex}`, {
-          headers: HeaderReq(storedToken),
-        });
+        const response = await axios(
+          `${EvidenceDetailsGET}/${evidenciaIndex}`,
+          {
+            headers: HeaderReq(storedToken),
+          }
+        );
         setEvidencia(response.data);
+        console.log(evidencia)
+        console.log("Imagem:", evidencia.imagem);
       } catch (error) {
-        console.error("Erro ao buscar a evidencia:", error.message);
+        console.error("Erro ao buscar a evidência:", error.message);
       } finally {
         setIsLoading(false);
       }
@@ -31,7 +40,7 @@ const DetalhesEvidenciaScreen = ({ route }) => {
     carregarEvidencia();
   }, []);
 
-  if (!evidencia) {
+  if (isLoading || !evidencia) {
     return (
       <View style={styles.container}>
         <Text>Carregando evidência...</Text>
@@ -40,60 +49,157 @@ const DetalhesEvidenciaScreen = ({ route }) => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Detalhes da Evidência</Text>
-      <Text style={styles.label}>Tipo:</Text>
-      <Text style={styles.text}>{evidencia.tipo}</Text>
+    <>
+     <Appbar.Header>
+        <Appbar.BackAction onPress={()=> navigator.navigate("DetalhesCaso", {casoId: evidencia.casoRelacionado?._id})} />
+        <Appbar.Content title="Detalhes da Evidencia" />        
+          <Appbar.Action icon="pencil"  />
+        
+      </Appbar.Header>
+      <ScrollView contentContainerStyle={styles.container}>
+        <TextInput
+          label="Tipo"
+          value={evidencia.tipo}
+          onChangeText={(text) => setEvidencia({ ...evidencia, tipo: text })}
+          mode="outlined"
+          style={styles.input}
+        />
 
-      <Text style={styles.label}>Descrição:</Text>
-      <Text style={styles.text}>{evidencia.descricao}</Text>
+        <TextInput
+          label="Descrição"
+          value={evidencia.descricao}
+          onChangeText={(text) =>
+            setEvidencia({ ...evidencia, descricao: text })
+          }
+          mode="outlined"
+          multiline
+          style={styles.input}
+        />
 
-      <Text style={styles.label}>Imagem:</Text>
-      {evidencia.imagem && (
-        <Image source={{ uri: evidencia.imagem }} style={styles.image} />
-      )}
+        <Text style={styles.label}>Imagem:</Text>
+        {evidencia.imagem && (
+          <Image source={{ uri: evidencia.imagem }} style={styles.image} />
+        )}
 
-      <Text style={styles.label}>Localização:</Text>
-      <Text style={styles.text}>Lat: {evidencia.localColeta?.latitude}</Text>
-      <Text style={styles.text}>Lng: {evidencia.localColeta?.longitude}</Text>
+        <TextInput
+          label="Latitude"
+          value={String(evidencia.localColeta?.latitude || "")}
+          onChangeText={(text) =>
+            setEvidencia({
+              ...evidencia,
+              localColeta: {
+                ...evidencia.localColeta,
+                latitude: text,
+              },
+            })
+          }
+          mode="outlined"
+          style={styles.input}
+        />
 
-      <Text style={styles.label}>Data e Hora:</Text>
-      <Text style={styles.text}>{evidencia.dataColeta}</Text>
+        <TextInput
+          label="Longitude"
+          value={String(evidencia.localColeta?.longitude || "")}
+          onChangeText={(text) =>
+            setEvidencia({
+              ...evidencia,
+              localColeta: {
+                ...evidencia.localColeta,
+                longitude: text,
+              },
+            })
+          }
+          mode="outlined"
+          style={styles.input}
+        />
 
-      <Text style={styles.label}>Caso Relacionado:</Text>
-      <Text style={styles.text}>{evidencia.casoRelacionado?.titulo}</Text>
+        <TextInput
+          label="Data e Hora"
+          value={evidencia.dataColeta}
+          onChangeText={(text) =>
+            setEvidencia({ ...evidencia, dataColeta: text })
+          }
+          mode="outlined"
+          style={styles.input}
+        />
 
-      <Text style={styles.label}>Perito Responsável:</Text>
-      <Text style={styles.text}>{evidencia.coletadoPor?.nome}</Text>
-    </ScrollView>
+        <TextInput
+          label="Caso Relacionado"
+          value={evidencia.casoRelacionado?.titulo || ""}
+          onChangeText={(text) =>
+            setEvidencia({
+              ...evidencia,
+              casoRelacionado: {
+                ...evidencia.casoRelacionado,
+                titulo: text,
+              },
+            })
+          }
+          mode="outlined"
+          style={styles.input}
+        />
+
+        <TextInput
+          label="Perito Responsável"
+          value={evidencia.coletadoPor?.nome || ""}
+          onChangeText={(text) =>
+            setEvidencia({
+              ...evidencia,
+              coletadoPor: {
+                ...evidencia.coletadoPor,
+                nome: text,
+              },
+            })
+          }
+          mode="outlined"
+          style={styles.input}
+        />
+         <Button
+          mode="contained"
+          onPress={() =>
+            navigator.navigate("CadastroLaudo", {
+              idEvidencia: evidencia._id,              
+            })
+          }
+          style={styles.button}
+        >
+          Gerar Laudo
+        </Button>
+
+        <Button
+          mode="contained"
+          onPress={() => navigator.goBack()}
+          style={styles.button}
+        >
+          Voltar
+        </Button>
+      </ScrollView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#dee1eb",
+    flexGrow: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
     marginBottom: 15,
   },
-  label: {
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  text: {
-    marginBottom: 10,
+  input: {
+    marginBottom: 15,
   },
   image: {
     width: "100%",
     height: 200,
     marginTop: 10,
-    marginBottom: 10,
+    marginBottom: 20,
     borderRadius: 10,
+  },
+  button: {
+    marginTop: 20,
   },
 });
 
 export default DetalhesEvidenciaScreen;
-// DetalhesEvidenciaScreen.jsx

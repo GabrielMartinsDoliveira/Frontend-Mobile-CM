@@ -5,13 +5,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/LoginScreen";
 import DrawerNavigator from "./DrawerNavigator";
 import HomeScreen from "../screens/HomeScreen";
-import SettingsScreen from "../screens/SettingsScreen";
+
 import CadastroCasoScreen from "../screens/CadastroCasoScreen";
 import CadastroEvidenciaScreen from "../screens/CadastroEvidenciaScreen";
 import CadastroLaudoScreen from "../screens/CadastroLaudoScreen";
 import CasosScreen from "../screens/CasosScreen";
 import DetalhesCasoScreen from "../screens/DetalhesCasoScreen";
 import DetalhesEvidenciaScreen from "../screens/DetalhesEvidenciaScreen";
+import CadastroRelatorioScreen from "../screens/CadastroRelatorioScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,7 +33,6 @@ export default function StackNavigator() {
 
       {/* navegação interna */}
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="CadastroCaso" component={CadastroCasoScreen} />
       <Stack.Screen
         name="CadastroEvidencia"
@@ -44,6 +44,10 @@ export default function StackNavigator() {
       <Stack.Screen
         name="DetalhesEvidencia"
         component={DetalhesEvidenciaScreen}
+      />
+      <Stack.Screen
+        name="CadastroRelatorio"
+        component={CadastroRelatorioScreen}
       />
     </Stack.Navigator>
   );

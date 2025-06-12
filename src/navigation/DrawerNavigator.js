@@ -6,12 +6,12 @@ import CadastroCasoScreen from "../screens/CadastroCasoScreen";
 import DetalhesCasoScreen from "../screens/DetalhesCasoScreen";
 import CadastroUsuarioScreen from "../screens/CadastroUsuarioScreen";
 import EditarUsuarioScreen from "../screens/EditarUsuarioScreen";
-import SettingsScreen from "../screens/SettingsScreen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { UserByIdGET, HeaderReq } from "../api/PathsApi";
 import { useEffect, useState } from "react";
 import CadastroVitimaScreen from "../screens/CadastroVitimaScreen";
+import SairScreen from "../screens/SairScreen";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -60,8 +60,7 @@ export default function DrawerNavigator() {
         name="Casos"
         component={CasosStack}
         options={{ title: "Casos" }}
-      />
-      <Drawer.Screen name="Settings" component={SettingsScreen} />
+      />      
       {role == "admin" && (
         <Drawer.Screen
           name="Cadastrar Usuario"
@@ -71,6 +70,7 @@ export default function DrawerNavigator() {
 
       <Drawer.Screen name="Atualizar senha" component={EditarUsuarioScreen} />
       <Drawer.Screen name="Cadastrar Vítima" component={CadastroVitimaScreen} />
+      <Drawer.Screen name="Sair" component={SairScreen} />
     </Drawer.Navigator>
   );
 }

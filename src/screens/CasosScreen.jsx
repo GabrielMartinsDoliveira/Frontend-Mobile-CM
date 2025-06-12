@@ -12,10 +12,10 @@ import {
   Divider,
   Chip,
   IconButton,
-  Card
+  Card,
 } from "react-native-paper";
 import { DatePickerModal } from "react-native-paper-dates";
-import { CasesGET, HeaderReq } from "../api/PathsApi";
+import { CasesGET, HeaderReq, UserByIdGET } from "../api/PathsApi";
 
 const CasosScreen = () => {
   const navigation = useNavigation();
@@ -26,6 +26,7 @@ const CasosScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   const handleGoToCase = (id) => {
     navigation.navigate("DetalhesCaso", { casoId: id });
@@ -35,12 +36,17 @@ const CasosScreen = () => {
     const loadTokenAndCases = async () => {
       try {
         const storedToken = await AsyncStorage.getItem("token");
+        const idUsuario = await AsyncStorage.getItem("idUsuario");
         if (!storedToken) return;
 
         const response = await axios(CasesGET, {
           headers: HeaderReq(storedToken),
         });
 
+        const responseUser = await axios.get(`${UserByIdGET}/${idUsuario}`, {
+          headers: HeaderReq(storedToken),
+        });
+        setUserRole(responseUser.data.role);
         setCases(response.data);
       } catch (error) {
         console.error("Erro ao buscar casos:", error.message);
@@ -84,7 +90,8 @@ const CasosScreen = () => {
 
     const itemDate = new Date(item.dataAbertura);
     const matchesDate =
-      !dateFilter || (dateFilter instanceof Date && isSameDay(itemDate, dateFilter));
+      !dateFilter ||
+      (dateFilter instanceof Date && isSameDay(itemDate, dateFilter));
 
     return matchesResponsible && matchesStatus && matchesDate;
   });
@@ -102,7 +109,7 @@ const CasosScreen = () => {
       case "Arquivado":
         return "#6c757d";
       default:
-        return "#f8f9fa";
+        return "#ffc107";
     }
   };
 
@@ -120,10 +127,14 @@ const CasosScreen = () => {
       <Appbar.Header>
         <Appbar.BackAction onPress={() => navigation.navigate("Home")} />
         <Appbar.Content title="Lista de Casos" />
-        <Appbar.Action
-          icon="plus"
-          onPress={() => navigation.navigate("CadastrarCaso")}
-        />
+        {userRole !== "assistente" ? (
+          <Appbar.Action
+            icon="plus"
+            onPress={() => navigation.navigate("CadastrarCaso")}
+          />
+        ) : (
+          <></>
+        )}
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -233,7 +244,10 @@ const CasosScreen = () => {
 
                 <Text style={styles.label}>Status:</Text>
                 <Chip
-                  style={[styles.chip, { backgroundColor: getStatusColor(caso.status) }]}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: getStatusColor(caso.status) },
+                  ]}
                   textStyle={{
                     color: caso.status === "Em andamento" ? "#000" : "#fff",
                   }}
@@ -259,7 +273,7 @@ const CasosScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#dee1eb",
   },
   content: {
     padding: 16,

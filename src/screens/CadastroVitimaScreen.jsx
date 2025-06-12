@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import { TextInput, Button, Text, RadioButton, Card } from "react-native-paper";
+import {
+  TextInput,
+  Button,
+  Text,
+  RadioButton,
+  Card,
+  Snackbar,
+} from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { UserByIdGET, HeaderReq } from "../api/PathsApi";
+import { UserByIdGET, HeaderReq, PacientPOST } from "../api/PathsApi";
 import { useNavigation } from "@react-navigation/native";
+
 
 const CadastroVitimaScreen = () => {
   const [responsavel, setResponsavel] = useState("");
-  const navigation = useNavigation()
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const navigation = useNavigation();
   const {
     control,
     handleSubmit,
@@ -42,7 +51,7 @@ const CadastroVitimaScreen = () => {
           headers: HeaderReq(storedToken),
         });
 
-        setResponsavel(response.data.nome);
+        setResponsavel(response.data);
       } catch (e) {
         console.error("Erro ao buscar role do usuário:", e);
       } finally {
@@ -55,11 +64,29 @@ const CadastroVitimaScreen = () => {
 
   const onSubmit = async (data) => {
     try {
-      // Aqui você faria a chamada à API para salvar os dados
-      console.log("Dados enviados:", data);
-      // await axios.post(...);
+      if (!responsavel?._id) {
+        throw new Error("Perito responsável não definido");
+      }
+
+      const payload = {
+        ...data,
+        peritoResponsavel: responsavel._id,
+        dataCadastro: new Date().toISOString(),
+        idade: data.idade ? Number(data.idade) : undefined
+      };
+
+      const response = await axios.post(PacientPOST, payload, {
+        headers: HeaderReq(await AsyncStorage.getItem("token")),
+      });
+      
+      setErrMessage("");
+      setShowSnackbar(true);
+      setTimeout(() => navigation.goBack(), 3000);
     } catch (err) {
-      console.error("Erro ao cadastrar vítima:", err);
+      const message = err.response?.data?.message || err.message || "Erro ao cadastrar";
+      setErrMessage(message);
+      setShowSnackbar(true);
+      console.error("Erro detalhado:", err.response?.data || err);
     }
   };
 
@@ -71,13 +98,12 @@ const CadastroVitimaScreen = () => {
           {/* Perito Responsável */}
           <Controller
             control={control}
-            name="peritoResponsavel"
-            rules={{ required: "Campo obrigatório" }}
+            name="peritoResponsavel"            
             render={({ field: { onChange, value } }) => (
               <TextInput
                 label="Perito Responsável"
-                mode="disabled"
-                value={responsavel}
+                mode="hidden"
+                value={responsavel._id}
                 error={!!errors.peritoResponsavel}
                 style={styles.input}
               />
@@ -243,13 +269,20 @@ const CadastroVitimaScreen = () => {
             mode="contained"
             loading={isSubmitting}
             disabled={isSubmitting}
-            onPress={()=>navigation.navigate("Home")}
+            onPress={() => navigation.navigate("Home")}
             style={styles.button}
           >
             Voltar
           </Button>
         </Card.Content>
       </Card>
+      <Snackbar
+        visible={showSnackbar}
+        onDismiss={() => setShowSnackbar(false)}
+        duration={3000}
+      >
+        Vítima cadastrada!
+      </Snackbar>
     </ScrollView>
   );
 };
@@ -259,7 +292,7 @@ export default CadastroVitimaScreen;
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: "#f0f2f5",
+    backgroundColor: "#dee1eb",
     flexGrow: 1,
   },
   card: {

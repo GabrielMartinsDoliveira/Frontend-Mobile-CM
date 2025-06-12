@@ -1,11 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
-import { TextInput, Button, Text, HelperText, Snackbar, Divider } from "react-native-paper";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Platform
+} from "react-native";
+import {
+  TextInput,
+  Button,
+  Text,
+  HelperText,
+  Snackbar,
+  Divider,
+  Menu
+} from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as Location from "expo-location";
-import { CasePOST, HeaderReq, UserByIdGET } from "../api/PathsApi";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { CasePOST, HeaderReq, PacientsGET, UserByIdGET } from "../api/PathsApi";
 import { useNavigation } from "@react-navigation/native";
 
 const CadastroCasoScreen = () => {
@@ -13,6 +27,9 @@ const CadastroCasoScreen = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [vitimas, setVitimas] = useState([]);
+  const [vitimaMenuVisible, setVitimaMenuVisible] = useState(false);
   const navigation = useNavigation();
 
   const {
@@ -26,10 +43,7 @@ const CadastroCasoScreen = () => {
     try {
       const payload = {
         ...data,
-        localidade: {
-          latitude,
-          longitude,
-        },
+        localidade: { latitude, longitude },
       };
       await axios.post(CasePOST, payload, {
         headers: HeaderReq(await AsyncStorage.getItem("token")),
@@ -55,6 +69,18 @@ const CadastroCasoScreen = () => {
     }
   };
 
+  const getVitimas = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await axios.get(PacientsGET, {
+        headers: HeaderReq(token),
+      });
+      setVitimas(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar vítimas:", error);
+    }
+  };
+
   const getLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -72,15 +98,17 @@ const CadastroCasoScreen = () => {
 
   useEffect(() => {
     getUserCase();
-    getLocation();
+    getVitimas();
     const hoje = new Date().toISOString().split("T")[0];
     setValue("dataAbertura", hoje);
   }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>Cadastrar Caso de Perícia</Text>
 
+      <Text variant="headlineMedium" style={styles.title}>
+        Cadastrar Caso de Perícia
+      </Text>
       <Divider style={{ marginBottom: 16 }} />
 
       <Controller
@@ -96,7 +124,6 @@ const CadastroCasoScreen = () => {
           />
         )}
       />
-      {errors.responsavel && <HelperText type="error">Responsável é obrigatório</HelperText>}
 
       <Controller
         control={control}
@@ -111,7 +138,6 @@ const CadastroCasoScreen = () => {
           />
         )}
       />
-      {errors.status && <HelperText type="error">Status é obrigatório</HelperText>}
 
       <Controller
         control={control}
@@ -123,11 +149,9 @@ const CadastroCasoScreen = () => {
             value={value}
             onChangeText={onChange}
             style={styles.input}
-            error={!!errors.titulo}
           />
         )}
       />
-      {errors.titulo && <HelperText type="error">{errors.titulo.message}</HelperText>}
 
       <Controller
         control={control}
@@ -137,8 +161,8 @@ const CadastroCasoScreen = () => {
           <TextInput
             label="Data de Abertura"
             value={value}
-            style={styles.input}
             disabled
+            style={styles.input}
           />
         )}
       />
@@ -148,15 +172,32 @@ const CadastroCasoScreen = () => {
         name="dataOcorrencia"
         rules={{ required: true }}
         render={({ field: { onChange, value } }) => (
-          <TextInput
-            label="Data da Ocorrência (YYYY-MM-DD)"
-            value={value}
-            onChangeText={onChange}
-            style={styles.input}
-          />
+          <>
+            <TextInput
+              label="Data da Ocorrência"
+              value={value}
+              onFocus={() => setShowDatePicker(true)}
+              style={styles.input}
+              editable={true}
+              right={<TextInput.Icon icon="calendar" />}
+            />
+            {showDatePicker && (
+              <DateTimePicker
+                value={value ? new Date(value) : new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    const isoDate = selectedDate.toISOString().split("T")[0];
+                    onChange(isoDate);
+                  }
+                }}
+              />
+            )}
+          </>
         )}
       />
-      {errors.dataOcorrencia && <HelperText type="error">Data da Ocorrência é obrigatória</HelperText>}
 
       <Controller
         control={control}
@@ -169,26 +210,55 @@ const CadastroCasoScreen = () => {
             onChangeText={onChange}
             multiline
             numberOfLines={5}
-            style={styles.textArea}
+            style={[styles.input, styles.textArea]}
           />
         )}
       />
-      {errors.descricao && <HelperText type="error">{errors.descricao.message}</HelperText>}
 
       <Controller
         control={control}
         name="vitima"
         rules={{ required: "A vítima é obrigatória" }}
         render={({ field: { onChange, value } }) => (
-          <TextInput
-            label="ID da Vítima"
-            value={value}
-            onChangeText={onChange}
-            style={styles.input}
-          />
+          <View>
+            <Menu
+              visible={vitimaMenuVisible}
+              onDismiss={() => setVitimaMenuVisible(false)}
+              anchor={
+                <TextInput
+                  label="Selecione a Vítima"
+                  value={
+                    vitimas.find((v) => v._id === value)?.dataCadastro || "Selecionar"
+                  }
+                  style={styles.input}
+                  onFocus={() => setVitimaMenuVisible(true)}
+                />
+              }
+            >
+              {vitimas.map((v) => (
+                <Menu.Item
+                  key={v._id}
+                  onPress={() => {
+                    onChange(v._id);
+                    setVitimaMenuVisible(false);
+                  }}
+                  title={v.dataCadastro}
+                />
+              ))}
+            </Menu>
+          </View>
         )}
       />
-      {errors.vitima && <HelperText type="error">{errors.vitima.message}</HelperText>}
+
+      <Button
+        mode="outlined"
+        onPress={getLocation}
+        style={styles.input}
+        icon="map-marker"
+      >
+        Obter Localização Atual
+      </Button>
+    
 
       <View style={styles.buttonGroup}>
         <Button
@@ -201,7 +271,7 @@ const CadastroCasoScreen = () => {
           Criar Caso
         </Button>
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={() => navigation.goBack()}
           style={styles.button}
         >
@@ -223,28 +293,30 @@ const CadastroCasoScreen = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#f4f4f4',
+    backgroundColor: "#dee1eb",
     flexGrow: 1,
   },
   title: {
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
     marginBottom: 16,
+    backgroundColor: "#FFFFFF",
   },
   textArea: {
-    marginBottom: 16,
     height: 120,
   },
   buttonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 16,
   },
   button: {
     flex: 1,
     marginHorizontal: 8,
+    backgroundColor: "#05253E",
+    color:'#ffff'
   },
 });
 
